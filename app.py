@@ -1,3 +1,5 @@
+# connexa-server/app.py
+
 import os
 import eventlet
 eventlet.monkey_patch()
@@ -7,16 +9,22 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, send
 from database import init_db, register_user, login_user
 
-app = Flask(__name__)
+# App setup
+app = Flask(__name__, template_folder="templates", static_folder="static")
+app.config['SECRET_KEY'] = 'connexa-super-secret-key'
 CORS(app)
-app.config['SECRET_KEY'] = 'connexa-super-secret'
 
+# SocketIO setup
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Initialize database
+# DB init
 DB_PATH = "data/connexa_users.db"
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 init_db(DB_PATH)
+
+# ──────────────────────────────────────────────
+# ROUTES
+# ──────────────────────────────────────────────
 
 @app.route('/')
 def home():
@@ -24,7 +32,7 @@ def home():
 
 @app.route('/api/register', methods=['POST'])
 def api_register():
-    data = request.json
+    data = request.json or {}
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
 
@@ -35,11 +43,11 @@ def api_register():
         username += '.connexa'
 
     success, message = register_user(DB_PATH, username, password)
-    return jsonify({'success': success, 'message': message})
+    return jsonify({'success': success, 'message': message}), (200 if success else 400)
 
 @app.route('/api/login', methods=['POST'])
 def api_login():
-    data = request.json
+    data = request.json or {}
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
 
@@ -47,17 +55,22 @@ def api_login():
         return jsonify({'success': False, 'message': 'Username and password required.'}), 400
 
     success = login_user(DB_PATH, username, password)
-    if success:
-        return jsonify({'success': True, 'message': 'Login successful.'})
-    else:
-        return jsonify({'success': False, 'message': 'Invalid username or password.'}), 401
+    return jsonify({'success': success, 'message': 'Login successful.' if success else 'Invalid credentials.'}), (200 if success else 401)
+
+# ──────────────────────────────────────────────
+# SOCKET.IO
+# ──────────────────────────────────────────────
 
 @socketio.on('message')
 def handle_message(msg):
-    print(f"[Server] Message: {msg}")
+    print(f"[Server] 📩 Message Received: {msg}")
     send(msg, broadcast=True)
 
+# ──────────────────────────────────────────────
+# START
+# ──────────────────────────────────────────────
+
 if __name__ == '__main__':
-    print("🌐 Connexa Server Online")
+    print("🌐 Connexa Server is running on http://localhost:5000")
     socketio.run(app, host='0.0.0.0', port=5000)
 
