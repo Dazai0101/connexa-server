@@ -1,20 +1,46 @@
+<!-- connexa-server/templates/index.html -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Connexa Server</title>
   <style>
     body {
-      background: #000;
+      background-color: #0e0e0e;
       color: #fff;
       font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
       text-align: center;
-      padding-top: 100px;
+    }
+    h1 {
+      font-size: 48px;
+      color: #9146FF;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 18px;
+      color: #bbb;
+    }
+    code {
+      background-color: #1e1e1e;
+      padding: 5px 10px;
+      border-radius: 5px;
+      color: #6fd;
     }
   </style>
 </head>
 <body>
-  <h1>🌐 Connexa Server Online</h1>
-  <p>This server is waiting for clients to connect via socket.io</p>
+  <div class="container">
+    <h1>CONNEXA Server Online</h1>
+    <p>Clients can now connect via <code>wss://connexa-server.onrender.com</code></p>
+  </div>
 </body>
 </html>
