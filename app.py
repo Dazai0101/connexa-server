@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, send
 from database import init_db, register_user, login_user
+from encryption import decrypt_message  # 🔒 Decryption patch added
 
 # App setup
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -62,9 +63,16 @@ def api_login():
 # ──────────────────────────────────────────────
 
 @socketio.on('message')
-def handle_message(msg):
-    print(f"[Server] 📩 Message Received: {msg}")
-    send(msg, broadcast=True)
+def handle_message(data):
+    if isinstance(data, str):
+        try:
+            data = data.encode()
+        except:
+            pass
+
+    decrypted = decrypt_message(data)
+    print(f"[Server] 🔓 Decrypted: {decrypted}")
+    send(decrypted, broadcast=True)
 
 # ──────────────────────────────────────────────
 # START
@@ -73,4 +81,3 @@ def handle_message(msg):
 if __name__ == '__main__':
     print("🌐 Connexa Server is running on http://localhost:5000")
     socketio.run(app, host='0.0.0.0', port=5000)
-
