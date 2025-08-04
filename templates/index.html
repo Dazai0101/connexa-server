@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Connexa Server</title>
   <style>
+    :root {
+      --glow-color: #00c6ff;
+      --text-glow: 0 0 10px var(--glow-color), 0 0 20px var(--glow-color), 0 0 30px var(--glow-color);
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --blur: blur(15px);
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -13,75 +20,97 @@
 
     body {
       background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: white;
       font-family: 'Segoe UI', sans-serif;
+      color: white;
       height: 100vh;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      animation: fadeIn 1s ease-in-out;
     }
 
     .container {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
       padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 0 20px rgba(0, 123, 255, 0.4);
-      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0, 198, 255, 0.3);
       text-align: center;
-      animation: fadeIn 1s ease-in-out;
-      width: 400px;
+      animation: float 4s ease-in-out infinite;
+      width: 440px;
     }
 
     .logo {
-      font-size: 2.5em;
+      font-size: 2.8em;
       font-weight: bold;
-      color: #00aaff;
-      margin-bottom: 10px;
+      color: #00c6ff;
+      text-shadow: var(--text-glow);
+      margin-bottom: 8px;
     }
 
     .subtitle {
       font-size: 1.2em;
-      margin-bottom: 20px;
       color: #ccc;
+      margin-bottom: 24px;
+      animation: flicker 3s infinite;
+    }
+
+    p {
+      font-size: 1em;
+      margin: 12px 0;
     }
 
     code {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 6px 10px;
-      border-radius: 6px;
+      background: rgba(0, 198, 255, 0.1);
+      padding: 8px 14px;
+      border-radius: 8px;
       font-size: 0.95em;
       display: inline-block;
-      margin-top: 6px;
+      margin: 6px auto;
+      color: #00f7ff;
+      font-family: 'Courier New', monospace;
+      box-shadow: 0 0 8px rgba(0, 198, 255, 0.3);
     }
 
     @keyframes fadeIn {
       from {
-        transform: translateY(20px);
         opacity: 0;
+        transform: scale(0.9);
       }
       to {
-        transform: translateY(0);
         opacity: 1;
+        transform: scale(1);
       }
     }
 
-    footer {
-      margin-top: 30px;
-      font-size: 0.9em;
-      color: #888;
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-6px);
+      }
     }
 
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        opacity: 1;
+      }
+      20%, 24%, 55% {
+        opacity: 0.4;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="logo">Connexa Server</div>
-    <div class="subtitle">Secure. Encrypted. Always On.</div>
-    <p>🌐 Server is <strong>LIVE</strong> and ready for client connections.</p>
-    <p>Use API endpoints below to interact:</p>
+    <div class="logo">CONNEXA SERVER</div>
+    <div class="subtitle">Encrypted • Alive • Waiting for clients</div>
+    <p>✅ Server is <strong>LIVE</strong> and secured</p>
+    <p>Use the following endpoints to connect:</p>
     <code>POST /api/register</code><br/>
     <code>POST /api/login</code>
-    <footer>© 2025 Connexa Technologies</footer>
   </div>
 </body>
 </html>
