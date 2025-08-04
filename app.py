@@ -1,77 +1,72 @@
-
-# connexa-server/app.py
-
+import os
+import sqlite3
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, request, jsonify, render_template
-from flask_socketio import SocketIO, send, emit, join_room
+from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, emit, send
 from flask_cors import CORS
-import sqlite3
-import os
 
 app = Flask(__name__)
-CORS(app)
 app.config['SECRET_KEY'] = 'connexa-super-secret'
 socketio = SocketIO(app, cors_allowed_origins="*")
+CORS(app)
 
 DB_PATH = "users.db"
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-def init_db():
+# ✅ No need to create directory — DB lives in root
+if not os.path.exists(DB_PATH):
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute('''CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password TEXT NOT NULL
-        )''')
-
-init_db()
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL
+            )
+        """)
+        conn.commit()
 
 @app.route('/')
 def home():
     return render_template("index.html")
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    user = data.get("username")
-    pw = data.get("password")
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT password FROM users WHERE username=?", (user,))
-        row = cursor.fetchone()
-        if row and row[0] == pw:
-            return jsonify(success=True, message="Login successful", username=user + ".connexa")
-        return jsonify(success=False, message="Invalid credentials")
-
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
-    user = data.get("username")
-    pw = data.get("password")
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE username=?", (user,))
-        if cursor.fetchone():
-            return jsonify(success=False, message="Username already taken.")
-        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (user, pw))
-        conn.commit()
-        return jsonify(success=True, message="Account created", username=user + ".connexa")
-
-@socketio.on("join_room")
-def handle_join(data):
     username = data.get("username")
-    room = data.get("room")
-    join_room(room)
-    send(f"{username} joined the chat.", room=room)
+    password = data.get("password")
 
-@socketio.on("send_message")
-def handle_send(data):
-    room = data.get("room")
-    msg = data.get("message")
-    sender = data.get("sender")
-    emit("receive_message", {"sender": sender, "message": msg}, room=room)
+    if not username or not password:
+        return jsonify({"status": "error", "message": "Missing fields"}), 400
 
-if __name__ == "__main__":
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            conn.commit()
+        return jsonify({"status": "success", "message": "Registered", "connexa_username": f"{username}.connexa"})
+    except sqlite3.IntegrityError:
+        return jsonify({"status": "error", "message": "Username already exists"}), 409
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+        user = cur.fetchone()
+        if user:
+            return jsonify({"status": "success", "connexa_username": f"{username}.connexa"})
+        else:
+            return jsonify({"status": "error", "message": "Invalid credentials"}), 401
+
+@socketio.on('message')
+def handle_message(msg):
+    print(f"[Server] Message: {msg}")
+    send(msg, broadcast=True)
+
+if __name__ == '__main__':
     print("🌐 Connexa Server Online")
-    socketio.run(app, host="0.0.0.0", port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000)
+
