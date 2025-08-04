@@ -1,65 +1,56 @@
 import os
-import sqlite3
 import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO, emit, send
 from flask_cors import CORS
+from flask_socketio import SocketIO, send
+from database import init_db, register_user, login_user
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'connexa-super-secret'
-socketio = SocketIO(app, cors_allowed_origins="*")
 CORS(app)
+app.config['SECRET_KEY'] = 'connexa-super-secret'
 
-DB_PATH = "users.db"
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# ✅ No need to create directory — DB lives in root
-if not os.path.exists(DB_PATH):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL
-            )
-        """)
-        conn.commit()
+# Initialize database
+DB_PATH = "data/connexa_users.db"
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+init_db(DB_PATH)
 
 @app.route('/')
 def home():
-    return render_template("index.html")
+    return render_template('index.html')
 
 @app.route('/api/register', methods=['POST'])
-def register():
+def api_register():
     data = request.json
-    username = data.get("username")
-    password = data.get("password")
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
 
     if not username or not password:
-        return jsonify({"status": "error", "message": "Missing fields"}), 400
+        return jsonify({'success': False, 'message': 'Username and password required.'}), 400
 
-    try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-            conn.commit()
-        return jsonify({"status": "success", "message": "Registered", "connexa_username": f"{username}.connexa"})
-    except sqlite3.IntegrityError:
-        return jsonify({"status": "error", "message": "Username already exists"}), 409
+    if not username.endswith('.connexa'):
+        username += '.connexa'
+
+    success, message = register_user(DB_PATH, username, password)
+    return jsonify({'success': success, 'message': message})
 
 @app.route('/api/login', methods=['POST'])
-def login():
+def api_login():
     data = request.json
-    username = data.get("username")
-    password = data.get("password")
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
 
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
-        user = cur.fetchone()
-        if user:
-            return jsonify({"status": "success", "connexa_username": f"{username}.connexa"})
-        else:
-            return jsonify({"status": "error", "message": "Invalid credentials"}), 401
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'Username and password required.'}), 400
+
+    success = login_user(DB_PATH, username, password)
+    if success:
+        return jsonify({'success': True, 'message': 'Login successful.'})
+    else:
+        return jsonify({'success': False, 'message': 'Invalid username or password.'}), 401
 
 @socketio.on('message')
 def handle_message(msg):
